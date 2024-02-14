@@ -5,7 +5,6 @@ Particle::Particle(float _mass, sf::Vector2f initPos) {
     position = initPos;
 }
 
-
 void Particle::applyForce(sf::Vector2f new_force) {
     force += new_force;
 }
@@ -24,4 +23,21 @@ void Particle::integrate(float dt) {
     velocity = half_vel + 0.5f * acceleration * dt;
 
     resetForce();
+}
+
+void Particle::draw(sf::RenderWindow &window) {
+    sf::CircleShape circle(5);
+    circle.setFillColor(sf::Color::Red);
+    circle.setPosition(position);
+    window.draw(circle);
+}
+
+void Particle::render(sf::RenderWindow& wind)
+{
+    wind.draw(s);
+}
+
+void Particle::set_color(sf::Color col)
+{
+    s.setFillColor(col);
 }
