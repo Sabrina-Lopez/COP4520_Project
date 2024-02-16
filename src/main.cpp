@@ -24,12 +24,19 @@ sf::Color map_val_to_color(float value) // value is 0-1
     return sf::Color(r, g, b);
 }
 
+const float G = 10.0;
+
+void applyGravity(std::vector<Particle> particles) {
+
+}
+
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1600, 1000), "SFML works!");
     window.setFramerateLimit(60);
 
-    std::vector<Particle> particles;
+    std::vector<Particle> particles;https://en.wikipedia.org/wiki/Gravity
     sf::Clock clock;
 
     int num_particles = 300;
@@ -64,6 +71,7 @@ int main()
         
         window.clear();
 
+        applyGravity(particles);
 
         for (int i = 0; i < particles.size(); i++)
         {
