@@ -1,21 +1,25 @@
 #include "particle.h"
 
-Particle::Particle(float _mass, sf::Vector2f initPos) {
+Particle::Particle(float _mass, sf::Vector2f initPos)
+{
     mass = _mass;
     position = initPos;
 }
 
-void Particle::applyForce(sf::Vector2f new_force) {
+void Particle::applyForce(sf::Vector2f new_force)
+{
     force += new_force;
 }
 
-void Particle::resetForce() {
+void Particle::resetForce()
+{
     force = sf::Vector2f(0, 0);
 }
 
 // Performs verlet integration of the change in time (dt)
 // Updates the position, velocity, acceleration, and force
-void Particle::integrate(float dt) {
+void Particle::integrate(float dt)
+{
     sf::Vector2f half_vel = velocity + 0.5f * acceleration * dt;
     position += half_vel * dt;
 
@@ -25,13 +29,14 @@ void Particle::integrate(float dt) {
     resetForce();
 }
 
-void Particle::draw(sf::RenderWindow &window) {
+void Particle::draw(sf::RenderWindow &window)
+{
     s.setRadius(mass);
     s.setPosition(position);
     window.draw(s);
 }
 
-void Particle::render(sf::RenderWindow& wind)
+void Particle::render(sf::RenderWindow &wind)
 {
     wind.draw(s);
 }

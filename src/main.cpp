@@ -1,10 +1,16 @@
 #include <SFML/Graphics.hpp>
 #include "particle.h"
 
+#include <math.h>
+
+const float G = 100.0;
+
 sf::Color map_val_to_color(float value) // value is 0-1
 {
-    if (value < 0.0f) value = 0;
-    if (value > 1.0f) value = 1;
+    if (value < 0.0f)
+        value = 0;
+    if (value > 1.0f)
+        value = 1;
 
     int r = 0, g = 0, b = 0;
 
@@ -16,7 +22,8 @@ sf::Color map_val_to_color(float value) // value is 0-1
         b = 255 * (1.0f - 2 * value);
         g = 255 * 2 * value;
     }
-    else {
+    else
+    {
         g = 255 * (2.0f - 2 * value);
         r = 255 * (2 * value - 1);
     }
@@ -24,22 +31,46 @@ sf::Color map_val_to_color(float value) // value is 0-1
     return sf::Color(r, g, b);
 }
 
-const float G = 10.0;
+void applyGravity(std::vector<Particle> &particles)
+{
+    for (int i = 0; i < particles.size(); i++)
+    {
+        for (int j = i + 1; j < particles.size(); j++)
+        {
+            float mass1 = particles[i].getMass();
+            float mass2 = particles[j].getMass();
 
-void applyGravity(std::vector<Particle> particles) {
+            sf::Vector2f pos1 = particles[i].getPosition();
+            sf::Vector2f pos2 = particles[j].getPosition();
 
+            sf::Vector2f r = pos2 - pos1;
+
+            float distance = sqrt(r.x * r.x + r.y * r.y);
+
+            // float distance = 
+
+            sf::Vector2f norm_r = r / distance;
+
+            sf::Vector2f force = (-G * ((mass1 * mass2) / (distance * distance))) * norm_r;
+
+            if (distance > 2)
+            {
+                particles[i].applyForce(-force);
+                particles[j].applyForce(force);
+            }
+        }
+    }
 }
-
 
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1600, 1000), "SFML works!");
     window.setFramerateLimit(60);
 
-    std::vector<Particle> particles;https://en.wikipedia.org/wiki/Gravity
+    std::vector<Particle> particles;
     sf::Clock clock;
 
-    int num_particles = 300;
+    int num_particles = 1000;
 
     for (int i = 0; i < num_particles; i++)
     {
@@ -68,7 +99,7 @@ int main()
             if (event.type == sf::Event::Closed)
                 window.close();
         }
-        
+
         window.clear();
 
         applyGravity(particles);
