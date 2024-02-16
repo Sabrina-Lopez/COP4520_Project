@@ -10,7 +10,7 @@ void Particle::applyForce(sf::Vector2f new_force) {
 }
 
 void Particle::resetForce() {
-    force -= force;
+    force = sf::Vector2f(0, 0);
 }
 
 // Performs verlet integration of the change in time (dt)
@@ -26,10 +26,9 @@ void Particle::integrate(float dt) {
 }
 
 void Particle::draw(sf::RenderWindow &window) {
-    sf::CircleShape circle(5);
-    circle.setFillColor(sf::Color::Red);
-    circle.setPosition(position);
-    window.draw(circle);
+    s.setRadius(mass);
+    s.setPosition(position);
+    window.draw(s);
 }
 
 void Particle::render(sf::RenderWindow& wind)

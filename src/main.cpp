@@ -32,22 +32,15 @@ int main()
     std::vector<Particle> particles;
     sf::Clock clock;
 
-    int num_particles = 3;
+    int num_particles = 300;
 
     for (int i = 0; i < num_particles; i++)
     {
-        // temporary code to showcase different particles being rendered simultaneously
-        switch(i) {
-            case 0:
-                particles.push_back(Particle(1.0f, sf::Vector2f(400, 500)));
-                break;
-            case 1:
-                particles.push_back(Particle(1.0f, sf::Vector2f(800, 500)));
-                break;
-            case 2:
-                particles.push_back(Particle(1.0f, sf::Vector2f(1200, 500)));
-                break;
-        }
+        float x = rand() % 1000;
+        float y = rand() % 1000;
+        float mass = rand() % 10 + 1;
+
+        particles.push_back(Particle(mass, sf::Vector2f(x, y)));
 
         // change colors
         float val = (float)i / (float)num_particles;
@@ -71,8 +64,10 @@ int main()
         
         window.clear();
 
+
         for (int i = 0; i < particles.size(); i++)
         {
+            particles[i].integrate(dt);
             particles[i].draw(window);
         }
 
