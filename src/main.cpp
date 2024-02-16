@@ -47,8 +47,6 @@ void applyGravity(std::vector<Particle> &particles)
 
             float distance = sqrt(r.x * r.x + r.y * r.y);
 
-            // float distance = 
-
             sf::Vector2f norm_r = r / distance;
 
             sf::Vector2f force = (-G * ((mass1 * mass2) / (distance * distance))) * norm_r;
@@ -74,8 +72,8 @@ int main()
 
     for (int i = 0; i < num_particles; i++)
     {
-        float x = rand() % 1000;
-        float y = rand() % 1000;
+        float x = rand() % window.getSize().x;
+        float y = rand() % window.getSize().y;
         float mass = rand() % 10 + 1;
 
         particles.push_back(Particle(mass, sf::Vector2f(x, y)));
@@ -98,6 +96,13 @@ int main()
         {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            if (event.type == sf::Event::Resized)
+            {
+                // update the view to the new size of the window
+                sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
+                window.setView(sf::View(visibleArea));
+            }
         }
 
         window.clear();
