@@ -1,9 +1,11 @@
-#include <SFML/Graphics.hpp>
-#include "particle.h"
-
+#include <iostream> 
 #include <math.h>
 
-const float G = 100.0;
+#include <SFML/Graphics.hpp>
+
+#include "particle.hpp"
+#include "direct_gravity.hpp"
+
 
 sf::Color map_val_to_color(float value) // value is 0-1
 {
@@ -31,33 +33,51 @@ sf::Color map_val_to_color(float value) // value is 0-1
     return sf::Color(r, g, b);
 }
 
-void applyGravity(std::vector<Particle> &particles)
-{
-    for (int i = 0; i < particles.size(); i++)
+// Returns a particle with a position the area defined by size
+Particle createRandomParticle(sf::Vector2u spawnSize) {
+    float x = rand() % spawnSize.x;
+    float y = rand() % spawnSize.y;
+    float mass = rand() % 10 + 1;
+
+    Particle p = Particle(mass, sf::Vector2f(x, y));
+
+    // change colors
+    sf::Color col = map_val_to_color(x / spawnSize.x);
+    p.set_color(col);
+
+    return p;
+}
+
+std::vector<Particle> createRandomParticles(int count, sf::Vector2u spawnSize) {
+    std::vector<Particle> particles;
+    
+    for (int i = 0; i < count; i++)
+        particles.push_back(createRandomParticle(spawnSize));
+
+    return particles;
+}
+
+void handleWindowEvents(sf::RenderWindow &window) {
+    sf::Event event;
+    while (window.pollEvent(event))
     {
-        for (int j = i + 1; j < particles.size(); j++)
+        if (event.type == sf::Event::Closed)
+            window.close();
+
+        if (event.type == sf::Event::Resized)
         {
-            float mass1 = particles[i].getMass();
-            float mass2 = particles[j].getMass();
-
-            sf::Vector2f pos1 = particles[i].getPosition();
-            sf::Vector2f pos2 = particles[j].getPosition();
-
-            sf::Vector2f r = pos2 - pos1;
-
-            float distance = sqrt(r.x * r.x + r.y * r.y);
-
-            sf::Vector2f norm_r = r / distance;
-
-            sf::Vector2f force = (-G * ((mass1 * mass2) / (distance * distance))) * norm_r;
-
-            if (distance > 2)
-            {
-                particles[i].applyForce(-force);
-                particles[j].applyForce(force);
-            }
+            // update the view to the new size of the window
+            sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
+            window.setView(sf::View(visibleArea));
         }
     }
+}
+
+// Will attempt to add a single particle given the current framerate
+// If framerate is below the given threshold, will print out total particles added
+void benchmark(std::vector<Particle> &particles, float fps, float fps_threshold, sf::Vector2u spawnSize) {
+    if (fps >= fps_threshold)
+        particles.push_back(createRandomParticle(spawnSize));
 }
 
 int main()
@@ -65,48 +85,26 @@ int main()
     sf::RenderWindow window(sf::VideoMode(1600, 1000), "SFML works!");
     window.setFramerateLimit(60);
 
-    std::vector<Particle> particles;
     sf::Clock clock;
 
-    int num_particles = 1000;
+    sf::Font roboto;
+    roboto.loadFromFile("./src/fonts/Roboto-Regular.ttf");
 
-    for (int i = 0; i < num_particles; i++)
-    {
-        float x = rand() % window.getSize().x;
-        float y = rand() % window.getSize().y;
-        float mass = rand() % 10 + 1;
+    sf::Text bench_text;
+    bench_text.setFont(roboto);
 
-        particles.push_back(Particle(mass, sf::Vector2f(x, y)));
-
-        // change colors
-        float val = (float)i / (float)num_particles;
-
-        sf::Color col = map_val_to_color(val);
-
-        particles[i].set_color(col);
-    }
+    std::vector<Particle> particles;
 
     while (window.isOpen())
     {
-        // calculates the frame or delta time (useful for physics!)
+        // calculates the frame or delta time
         float dt = clock.restart().asSeconds();
 
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-                window.close();
-
-            if (event.type == sf::Event::Resized)
-            {
-                // update the view to the new size of the window
-                sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
-                window.setView(sf::View(visibleArea));
-            }
-        }
+        handleWindowEvents(window);
 
         window.clear();
 
+        // Particle handling
         applyGravity(particles);
 
         for (int i = 0; i < particles.size(); i++)
@@ -114,6 +112,15 @@ int main()
             particles[i].integrate(dt);
             particles[i].draw(window);
         }
+
+        // Benchmarking
+        float fpsThreshold = 30.0;
+        benchmark(particles, (1 / dt), fpsThreshold, window.getSize());
+
+        std::string fps_str = "FPS: " + std::to_string((int)(1 / dt)) + " / " + std::to_string((int)fpsThreshold);
+        std::string particles_str = "Particles: " + std::to_string(particles.size());
+        bench_text.setString(fps_str + "\n" + particles_str);
+        window.draw(bench_text);
 
         window.display();
     }

@@ -1,4 +1,4 @@
-#include "particle.h"
+#include "particle.hpp"
 
 Particle::Particle(float _mass, sf::Vector2f initPos)
 {
