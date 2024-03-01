@@ -14,7 +14,7 @@ void BarnesHut::insert(Node& node, double x, double y, double mass) {
         double new_x = (node.x + x) / 2;
         double new_y = (node.y + y) / 2;
         double new_mass = node.mass + mass;
-        
+
         node.is_leaf = false;
         node.children.emplace_back(node.x, node.y, node.mass);
         node.children.emplace_back(new_x, new_y, new_mass);
@@ -33,7 +33,7 @@ double BarnesHut::calculate_force(Node& node, double x, double y, double mass) {
     double dy = y - node.y;
     double distance = std::sqrt(dx * dx + dy * dy);
 
-    if (node.is_leaf || distance * node.mass / (distance * distance) < 0.1) {
+    if (node.is_leaf || distance * node.mass / (distance * distance) < 0.5) {
         // If the node is a leaf or the far-field approximation is valid, use the direct force calculation
         return G * mass * node.mass / (distance * distance);
     } 

@@ -29,9 +29,6 @@ class BarnesHut {
         double calculate_particle_force(const Particle& particle) {
             return calculate_force(root, particle.getPosition().x, particle.getPosition().y, particle.getMass());
         }
-        
-        // Get the index of the child node that the particle belongs to
-        int get_child_index(double x, double y, double center_x, double center_y);
 
     private:
         Node root; // Root node of the quad-tree
