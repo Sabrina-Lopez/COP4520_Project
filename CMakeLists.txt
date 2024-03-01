@@ -6,6 +6,7 @@ project(nbody LANGUAGES CXX)
 set(SOURCE_FILES
     src/main.cpp
     src/particle.cpp
+    src/barnesHut.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
