@@ -3,7 +3,151 @@
 #include "particle.hpp"
 #include <math.h>
 
+#include <thread>
+#include <mutex>
+#include <vector>
+
 const float G = 50.0;
+
+// New Code to Deal with Potential Contention
+struct ForceAccumulator
+{
+    sf::Vector2f force;
+    std::mutex mutex;
+};
+
+std::mutex mutex;
+
+// We have to choose the amount of threads we send in...
+// Find a mechanism of how many threads we generate...
+
+/*
+void calculateGravity(std::vector<Particle> &particles, int startIdx, int endIdx)
+{
+    int numParticles = particles.size();
+
+    for (int i = startIdx; i < endIdx; i++)
+    {
+        for (int j = 0; j < numParticles; j++)
+        {
+            if (j != i)
+            {
+                float mass1 = particles[i].getMass();
+                float mass2 = particles[j].getMass();
+
+                sf::Vector2f pos1 = particles[i].getPosition();
+                sf::Vector2f pos2 = particles[j].getPosition();
+
+                sf::Vector2f r = pos2 - pos1;
+
+                float distance = sqrt(r.x * r.x + r.y * r.y);
+
+                if (distance > 2)
+                {
+                    sf::Vector2f norm_r = r / distance;
+                    sf::Vector2f force = (-G * ((mass1 * mass2) / (distance * distance))) * norm_r;
+
+                    // Use a lock to protect the shared data
+                    std::lock_guard<std::mutex> lock(mutex);
+
+                    particles[i].applyForce(-force);
+                    particles[j].applyForce(force);
+                }
+            }
+        }
+    }
+}
+*/
+
+// New code...
+// Using extra function to not condense code too much
+void calculateGravity(std::vector<Particle> &particles, int startIdx, int endIdx, std::vector<ForceAccumulator> &forceAccumulators)
+{
+    int numParticles = particles.size();
+
+    for (int i = startIdx; i < endIdx; i++)
+    {
+        for (int j = 0; j < numParticles; j++)
+        {
+            if (j != i)
+            {
+                float mass1 = particles[i].getMass();
+                float mass2 = particles[j].getMass();
+
+                sf::Vector2f pos1 = particles[i].getPosition();
+                sf::Vector2f pos2 = particles[j].getPosition();
+
+                sf::Vector2f r = pos2 - pos1;
+
+                float distance = sqrt(r.x * r.x + r.y * r.y);
+
+                if (distance > 2)
+                {
+                    sf::Vector2f norm_r = r / distance;
+                    sf::Vector2f force = (-G * ((mass1 * mass2) / (distance * distance))) * norm_r;
+
+                    // Use a lock only when updating the accumulator
+                    std::lock_guard<std::mutex> lock(forceAccumulators[i].mutex);
+                    forceAccumulators[i].force += force;
+                    forceAccumulators[j].force -= force;
+                }
+            }
+        }
+    }
+}
+
+
+// void applyParallelGravity(std::vector<Particle> &particles, int numThreads)
+// {
+//     int numParticles = particles.size();
+//     int particlesPerThread = numParticles / numThreads;
+
+//     std::vector<std::thread> threads;
+
+//     for (int i = 0; i < numThreads; ++i)
+//     {
+//         int startIdx = i * particlesPerThread;
+//         int endIdx = (i == numThreads - 1) ? numParticles : startIdx + particlesPerThread;
+
+//         threads.emplace_back(calculateGravity, std::ref(particles), startIdx, endIdx);
+//     }
+
+//     for (auto &thread : threads)
+//     {
+//         thread.join();
+//     }
+// }
+
+
+// New Code
+void applyParallelGravity(std::vector<Particle> &particles, int numThreads)
+{
+    int numParticles = particles.size();
+    int particlesPerThread = numParticles / numThreads;
+
+    std::vector<std::thread> threads;
+    std::vector<ForceAccumulator> forceAccumulators(numParticles);
+
+    for (int i = 0; i < numThreads; ++i)
+    {
+        int startIdx = i * particlesPerThread;
+        int endIdx = (i == numThreads - 1) ? numParticles : startIdx + particlesPerThread;
+
+        threads.emplace_back(calculateGravity, std::ref(particles), startIdx, endIdx, std::ref(forceAccumulators));
+    }
+
+    for (auto &thread : threads)
+    {
+        thread.join();
+    }
+
+    // Apply accumulated forces outside the critical section
+    for (int i = 0; i < numParticles; ++i)
+    {
+        particles[i].applyForce(forceAccumulators[i].force);
+    }
+}
+
 
 void applyGravity(std::vector<Particle> &particles)
 {

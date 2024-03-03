@@ -105,7 +105,8 @@ int main()
         window.clear();
 
         // Particle handling
-        applyGravity(particles);
+        // applyGravity(particles);
+        applyParallelGravity(particles, 4);
 
         for (int i = 0; i < particles.size(); i++)
         {
