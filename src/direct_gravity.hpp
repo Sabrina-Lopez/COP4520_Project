@@ -7,7 +7,7 @@
 #include <mutex>
 #include <vector>
 
-const float G = 50.0;
+const float G = 10.0;
 
 // New Code to Deal with Potential Contention
 struct ForceAccumulator
@@ -26,16 +26,15 @@ void calculateGravity(std::vector<Particle> &particles, int startIdx, int endIdx
 
     for (int i = startIdx; i < endIdx; i++)
     {
-        for (int j = 0; j < numParticles; j++)
+        for (int j = i + 1; j < i + floor(numParticles / 2); j++)
         {
-            if (j >= startIdx && j < endIdx && endIdx - startIdx < numParticles)
-                continue;
+            int curIndex = j % numParticles;
 
             float mass1 = particles[i].getMass();
-            float mass2 = particles[j].getMass();
+            float mass2 = particles[curIndex].getMass();
 
             sf::Vector2f pos1 = particles[i].getPosition();
-            sf::Vector2f pos2 = particles[j].getPosition();
+            sf::Vector2f pos2 = particles[curIndex].getPosition();
 
             sf::Vector2f r = pos2 - pos1;
 
@@ -49,7 +48,7 @@ void calculateGravity(std::vector<Particle> &particles, int startIdx, int endIdx
                 // Use a lock only when updating the accumulator
                 std::lock_guard<std::mutex> lock(forceAccumulators[i].mutex);
                 forceAccumulators[i].force -= force;
-                forceAccumulators[j].force += force;
+                forceAccumulators[curIndex].force += force;
             }
         }
     }
