@@ -6,7 +6,7 @@
 #include <math.h>
 
 // Define the gravitational constant
-const double BarnesHut::G = 6.6743e-11;
+const double BarnesHut::G = 10.0;
 
 // Insert a particle into the quad-tree
 void BarnesHut::insert(Node& node, double x, double y, double mass) {
@@ -15,7 +15,6 @@ void BarnesHut::insert(Node& node, double x, double y, double mass) {
         double new_x = (node.x + x) / 2;
         double new_y = (node.y + y) / 2;
         double new_mass = node.mass + mass;
-
         node.is_leaf = false;
         node.children.emplace_back(node.x, node.y, node.mass);
         node.children.emplace_back(new_x, new_y, new_mass);

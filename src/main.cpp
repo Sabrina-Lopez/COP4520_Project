@@ -5,6 +5,7 @@
 
 #include "particle.hpp"
 #include "direct_gravity.hpp"
+#include "barnesHut.hpp"
 
 
 sf::Color map_val_to_color(float value) // value is 0-1
@@ -125,7 +126,17 @@ int main()
         }
 
         // Particle handling
-        applyParallelGravity(particles, threadCount);
+        //applyParallelGravity(particles, threadCount);
+
+        BarnesHut bh = BarnesHut(0, 0, window.getSize().x, window.getSize().y);
+
+        for (Particle &p : particles) {
+            bh.insertParticle(p);
+        }
+        
+        for (Particle &p : particles) {
+            bh.calculate_particle_force(p);
+        }
 
         for (int i = 0; i < particles.size(); i++)
         {
