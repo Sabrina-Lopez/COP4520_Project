@@ -3,6 +3,7 @@
 #include <SFML/Graphics.hpp>
 #include "particle.hpp"
 #include "barnesHut.hpp"
+#include <math.h>
 
 // Define the gravitational constant
 const double BarnesHut::G = 6.6743e-11;
@@ -31,7 +32,7 @@ void BarnesHut::insert(Node& node, double x, double y, double mass) {
 double BarnesHut::calculate_force(Node& node, double x, double y, double mass) {
     double dx = x - node.x;
     double dy = y - node.y;
-    double distance = std::sqrt(dx * dx + dy * dy);
+    double distance = sqrt(dx * dx + dy * dy);
 
     if (node.is_leaf || distance * node.mass / (distance * distance) < 0.5) {
         // If the node is a leaf or the far-field approximation is valid, use the direct force calculation

@@ -73,17 +73,10 @@ void handleWindowEvents(sf::RenderWindow &window) {
     }
 }
 
-// Will attempt to add a single particle given the current framerate
-// If framerate is below the given threshold, will print out total particles added
-void benchmark(std::vector<Particle> &particles, float fps, float fps_threshold, sf::Vector2u spawnSize) {
-    if (fps >= fps_threshold)
-        particles.push_back(createRandomParticle(spawnSize));
-}
-
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1600, 1000), "SFML works!");
-    window.setFramerateLimit(60);
+    window.setFramerateLimit(120);
 
     sf::Clock clock;
 
@@ -91,9 +84,13 @@ int main()
     roboto.loadFromFile("./src/fonts/Roboto-Regular.ttf");
 
     sf::Text bench_text;
+    bench_text.setScale(sf::Vector2f(0.75, 0.75));
     bench_text.setFont(roboto);
 
     std::vector<Particle> particles;
+
+    float threadCount = 1;
+    float framesUnder = 0;
 
     while (window.isOpen())
     {
@@ -104,19 +101,37 @@ int main()
 
         window.clear();
 
+        // Benchmarking
+        float fpsThreshold = 30.0;
+        float fps = 1 / dt;
+        
+        if (fps >= fpsThreshold) 
+        {
+            for (int i = 0; i < std::min(ceil(fps - fpsThreshold), 30.0f); i++) 
+            {
+                particles.push_back(createRandomParticle(window.getSize()));
+                framesUnder = 0;
+            }
+        }
+        else if (threadCount <= 20) 
+        {
+            framesUnder++;
+            if (framesUnder > fps * 5) 
+            {
+                std::cout << threadCount << " - " << particles.size() << " particles" << std::endl;
+                threadCount++;
+                framesUnder = 0;
+            }
+        }
+
         // Particle handling
-        // applyGravity(particles);
-        applyParallelGravity(particles, 4);
+        applyParallelGravity(particles, threadCount);
 
         for (int i = 0; i < particles.size(); i++)
         {
             particles[i].integrate(dt);
             particles[i].draw(window);
         }
-
-        // Benchmarking
-        float fpsThreshold = 30.0;
-        benchmark(particles, (1 / dt), fpsThreshold, window.getSize());
 
         std::string fps_str = "FPS: " + std::to_string((int)(1 / dt)) + " / " + std::to_string((int)fpsThreshold);
         std::string particles_str = "Particles: " + std::to_string(particles.size());

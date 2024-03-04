@@ -31,7 +31,7 @@ void Particle::integrate(float dt)
 
 void Particle::draw(sf::RenderWindow &window)
 {
-    s.setRadius(mass);
+    s.setRadius(std::max(mass / 2.0, 1.0));
     s.setPosition(position);
     window.draw(s);
 }
