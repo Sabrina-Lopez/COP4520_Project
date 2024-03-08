@@ -126,17 +126,17 @@ int main()
         }
 
         // Particle handling
-        //applyParallelGravity(particles, threadCount);
+        applyParallelGravity(particles, threadCount);
 
-        BarnesHut bh = BarnesHut(0, 0, window.getSize().x, window.getSize().y);
+        // BarnesHut bh = BarnesHut(0, 0, window.getSize().x, window.getSize().y);
 
-        for (Particle &p : particles) {
-            bh.insertParticle(p);
-        }
+        // for (Particle &p : particles) {
+        //     bh.insertParticle(p);
+        // }
         
-        for (Particle &p : particles) {
-            bh.calculate_particle_force(p);
-        }
+        // for (Particle &p : particles) {
+        //     bh.calculate_particle_force(p);
+        // }
 
         for (int i = 0; i < particles.size(); i++)
         {
