@@ -4,8 +4,8 @@
 #include <SFML/Graphics.hpp>
 
 #include "particle.hpp"
-#include "direct_gravity.hpp"
-#include "barnesHut.hpp"
+#include "naive_nbody.hpp"
+#include "BHTree.hpp"
 
 
 sf::Color map_val_to_color(float value) // value is 0-1
