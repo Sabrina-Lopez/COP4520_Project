@@ -25,7 +25,6 @@ class Particle {
         
         void integrate(float dt);
 
-        void render(sf::RenderWindow& wind);
         void set_color(sf::Color col);
         void draw(sf::RenderWindow &window);
 };

@@ -31,14 +31,10 @@ void Particle::integrate(float dt)
 
 void Particle::draw(sf::RenderWindow &window)
 {
-    s.setRadius(std::max(mass / 4.0, 1.0));
-    s.setPosition(position);
+    float radius = std::clamp(mass / 5, 1.0f, 10.0f);
+    s.setRadius(radius);
+    s.setPosition(position - sf::Vector2f(radius, radius));
     window.draw(s);
-}
-
-void Particle::render(sf::RenderWindow &wind)
-{
-    wind.draw(s);
 }
 
 void Particle::set_color(sf::Color col)

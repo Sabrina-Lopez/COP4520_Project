@@ -7,32 +7,6 @@
 #include "naive_nbody.hpp"
 #include "BHTree.hpp"
 
-sf::Color map_val_to_color(float value) // value is 0-1
-{
-    if (value < 0.0f)
-        value = 0;
-    if (value > 1.0f)
-        value = 1;
-
-    int r = 0, g = 0, b = 0;
-
-    // 0 - 0.5 interp blue to green
-    // 0.5 - 1 interp green to red
-
-    if (value < 0.5f)
-    {
-        b = 255 * (1.0f - 2 * value);
-        g = 255 * 2 * value;
-    }
-    else
-    {
-        g = 255 * (2.0f - 2 * value);
-        r = 255 * (2 * value - 1);
-    }
-
-    return sf::Color(r, g, b);
-}
-
 // Returns a particle with a position the area defined by size
 Particle createRandomParticle(sf::Vector2u spawnSize) {
     float x = rand() % spawnSize.x;
@@ -42,8 +16,10 @@ Particle createRandomParticle(sf::Vector2u spawnSize) {
     Particle p = Particle(mass, sf::Vector2f(x, y));
 
     // change colors
-    sf::Color col = map_val_to_color(x / spawnSize.x);
-    p.set_color(col);
+    int r = rand() % 255;
+    int g = rand() % 255;
+    int b = rand() % 255;
+    p.set_color(sf::Color(r,g,b));
 
     return p;
 }
@@ -73,24 +49,6 @@ void handleWindowEvents(sf::RenderWindow &window) {
     }
 }
 
-
-void calculateBHGravity(BHTree& bh, std::vector<Particle>& particles, int startIdx, int endIdx) {
-    for (int i = startIdx; i < endIdx; i++) {
-        sf::Vector2f force = bh.calculate_particle_force(particles[i]);
-        particles[i].applyForce(force);
-    }
-}
-
-float furthestDistance(std::vector<Particle>& particles) {
-    int largestX = 0;
-    for (Particle p : particles) {
-        if (p.getPosition().x > largestX) {
-            largestX = p.getPosition().x;
-        }
-    }
-    return largestX;
-}
-
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1600, 1000), "N-Body Simulation");
@@ -107,7 +65,7 @@ int main()
 
     std::vector<Particle> particles;
 
-    float threadCount = 1;
+    int threadCount = 20;
     float maxThreads = 20;
     
     float minFps = 30.0;
@@ -141,34 +99,16 @@ int main()
             secondsUnder = 0;
         }
 
-        // Particle handling
-        // applyParallelGravity(particles, threadCount); // naive (multi-threaded)
-        // applyGravity(particles); // naive (single threaded)
-        
-        sf::Vector2f windowCenter = sf::Vector2f(window.getSize().x / 2, window.getSize().y / 2);
-        BHTree bh = BHTree(windowCenter, furthestDistance(particles) * 2, 1);
-        
-        for (Particle &p : particles) {
-            bh.insertParticle(p);
-        }
+        sf::Vector2u windowSize = window.getSize();
+        sf::Vector2f windowCenter = sf::Vector2f(windowSize.x / 2, windowSize.y / 2);
+        BHTreeNode bh = BHTreeNode(windowCenter, windowSize.x * 2, 1);
 
-        int numParticles = particles.size();
-        int particlesPerThread = numParticles / threadCount;
+        bh.insert(particles);
+        applyBHForcesParallel(bh, particles, threadCount);
 
-        std::vector<std::thread> threads;
+        bh.draw(window);
 
-        for (int i = 0; i < threadCount; ++i)
-        {
-            int startIdx = i * particlesPerThread;
-            int endIdx = (i == threadCount - 1) ? numParticles : startIdx + particlesPerThread;
-
-            threads.emplace_back(calculateBHGravity, std::ref(bh), std::ref(particles), startIdx, endIdx);
-        }
-
-        for (auto &thread : threads)
-        {
-            thread.join();
-        }
+        //applyParallelGravity(particles, threadCount); // naive (multi-threaded)
 
         for (Particle &p : particles)
         {
@@ -178,7 +118,9 @@ int main()
 
         std::string fps_str = "FPS: " + std::to_string((int)(1 / dt)) + " / " + std::to_string((int)minFps);
         std::string particles_str = "Particles: " + std::to_string(particles.size());
-        bench_text.setString(fps_str + "\n" + particles_str);
+        std::string threads_str = "Threads: " + std::to_string(threadCount);
+        std::string bh_str = "BH Size: " + std::to_string(bh.getSize());
+        bench_text.setString(fps_str + "\n" + particles_str + "\n" + threads_str + "\n" + bh_str);
         window.draw(bench_text);
 
         window.display();
