@@ -73,6 +73,24 @@ void handleWindowEvents(sf::RenderWindow &window) {
     }
 }
 
+
+void calculateBHGravity(BHTree& bh, std::vector<Particle>& particles, int startIdx, int endIdx) {
+    for (int i = startIdx; i < endIdx; i++) {
+        sf::Vector2f force = bh.calculate_particle_force(particles[i]);
+        particles[i].applyForce(force);
+    }
+}
+
+float furthestDistance(std::vector<Particle>& particles) {
+    int largestX = 0;
+    for (Particle p : particles) {
+        if (p.getPosition().x > largestX) {
+            largestX = p.getPosition().x;
+        }
+    }
+    return largestX;
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1600, 1000), "N-Body Simulation");
@@ -110,7 +128,7 @@ int main()
         secondsUnder += dt;
         if (fps >= minFps) 
         {
-            for (int i = 0; i < std::min(ceil(fps - minFps), 30.0f); i++) 
+            for (int i = 0; i < std::min(ceil(fps - minFps), 60.0f); i++) 
             {
                 particles.push_back(createRandomParticle(window.getSize()));
                 secondsUnder = 0;
@@ -124,34 +142,32 @@ int main()
         }
 
         // Particle handling
-        // applyParallelGravity(particles, threadCount);
-        // applyGravity(particles);
-
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-        {
-            if (!wasMousePressed) {
-                auto mousePos = sf::Mouse::getPosition();
-                sf::Vector2f pos = sf::Vector2f(mousePos.x, mousePos.y);
-                auto p = Particle(5, pos);
-                p.set_color(sf::Color::Red);
-                particles.push_back(p);
-                wasMousePressed = true;
-            }
-        }
-        else {
-            wasMousePressed = false;
-        }
+        // applyParallelGravity(particles, threadCount); // naive (multi-threaded)
+        // applyGravity(particles); // naive (single threaded)
         
         sf::Vector2f windowCenter = sf::Vector2f(window.getSize().x / 2, window.getSize().y / 2);
-        BHTree bh = BHTree(windowCenter, 10000);
+        BHTree bh = BHTree(windowCenter, furthestDistance(particles) * 2, 1);
         
         for (Particle &p : particles) {
             bh.insertParticle(p);
         }
-        
-        for (Particle &p : particles) {
-            sf::Vector2f force = bh.calculate_particle_force(p);
-            p.applyForce(force);
+
+        int numParticles = particles.size();
+        int particlesPerThread = numParticles / threadCount;
+
+        std::vector<std::thread> threads;
+
+        for (int i = 0; i < threadCount; ++i)
+        {
+            int startIdx = i * particlesPerThread;
+            int endIdx = (i == threadCount - 1) ? numParticles : startIdx + particlesPerThread;
+
+            threads.emplace_back(calculateBHGravity, std::ref(bh), std::ref(particles), startIdx, endIdx);
+        }
+
+        for (auto &thread : threads)
+        {
+            thread.join();
         }
 
         for (Particle &p : particles)
@@ -162,7 +178,7 @@ int main()
 
         std::string fps_str = "FPS: " + std::to_string((int)(1 / dt)) + " / " + std::to_string((int)minFps);
         std::string particles_str = "Particles: " + std::to_string(particles.size());
-        bench_text.setString(fps_str + "\n" + particles_str + "\n" + "BH Tree Size: " + std::to_string(bh.getTotalNodeSize(window)));
+        bench_text.setString(fps_str + "\n" + particles_str);
         window.draw(bench_text);
 
         window.display();

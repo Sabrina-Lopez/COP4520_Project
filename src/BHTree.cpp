@@ -17,16 +17,16 @@ void BHTree::insert(Node& node, sf::Vector2f position, float mass) {
         // Create all children
 
         sf::Vector2f nwCenter = node.regionCenter + sf::Vector2f(-childWidth / 2, -childWidth / 2);
-        node.children.emplace_back(Node(nwCenter, childWidth, nwCenter, 0));
+        node.children.push_back(Node(nwCenter, childWidth, nwCenter, 0));
 
         sf::Vector2f neCenter = node.regionCenter + sf::Vector2f(childWidth / 2, -childWidth / 2);
-        node.children.emplace_back(Node(neCenter, childWidth, neCenter, 0));
+        node.children.push_back(Node(neCenter, childWidth, neCenter, 0));
 
         sf::Vector2f seCenter = node.regionCenter + sf::Vector2f(childWidth / 2, childWidth / 2);
-        node.children.emplace_back(Node(seCenter, childWidth, seCenter, 0));
+        node.children.push_back(Node(seCenter, childWidth, seCenter, 0));
 
         sf::Vector2f swCenter = node.regionCenter + sf::Vector2f(-childWidth / 2, childWidth / 2);   
-        node.children.emplace_back(Node(swCenter, childWidth, swCenter, 0));
+        node.children.push_back(Node(swCenter, childWidth, swCenter, 0));
         
         node.isExternal = false;
     }
@@ -37,8 +37,8 @@ void BHTree::insert(Node& node, sf::Vector2f position, float mass) {
         node.massCenter = position;
         return;
     }
-
-    node.massCenter += ((position * mass) / node.mass);
+    
+    node.massCenter = (position * mass + node.massCenter * node.mass) / (node.mass + mass);
     node.mass += mass;
 
     // Attempt to insert into all children
@@ -49,17 +49,15 @@ void BHTree::insert(Node& node, sf::Vector2f position, float mass) {
 
 sf::Vector2f BHTree::calculate_force(Node& node, sf::Vector2f position, float mass) {
     if (node.isExternal) 
-        return getGravityForce(node.regionCenter, node.mass, position, mass);
+        return getGravityForce(node.massCenter, node.mass, position, mass);
 
     sf::Vector2f force = sf::Vector2f(0, 0);
 
-    // d = distance between position and node.massCenter
-    // s = node.regionWidth
-    sf::Vector2f r = position - node.regionCenter;
+    sf::Vector2f r = position - node.massCenter;
     float distance = sqrt(r.x * r.x + r.y * r.y);
 
-    if (node.regionWidth / distance < 0.5) {
-        return getGravityForce(node.regionCenter, node.mass, position, mass);
+    if (node.regionWidth / distance < theta) {
+        return getGravityForce(node.massCenter, node.mass, position, mass);
     }
     else {
         for (Node& child : node.children) {
@@ -68,18 +66,4 @@ sf::Vector2f BHTree::calculate_force(Node& node, sf::Vector2f position, float ma
     }
 
     return force;
-}
-
-int BHTree::get_child_index(double x, double y, double center_x, double center_y) {
-    int child_index = 0;
-    
-    if (x > center_x) {
-        child_index += 1;
-    }
-
-    if (y > center_y) {
-        child_index += 2;
-    }
-
-    return child_index;
 }

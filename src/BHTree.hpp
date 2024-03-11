@@ -5,6 +5,8 @@
 
 class BHTree {
     public:
+        float theta = 1;
+
         // Represents a node in the quad-tree
         struct Node {
             bool isExternal; // Refers to whether this is a leaf / external node (represents a single particle)
@@ -34,8 +36,8 @@ class BHTree {
         };
 
         // Constructor
-        BHTree(sf::Vector2f regionCenter, float regionSize):
-            root(Node(regionCenter, regionSize, regionCenter, 0)) {}
+        BHTree(sf::Vector2f regionCenter, float regionSize, float theta):
+            root(Node(regionCenter, regionSize, regionCenter, 0)), theta(theta) {}
         
         // Insert a particle into a specific node
         void insertParticle(const Particle& particle) {
@@ -47,8 +49,7 @@ class BHTree {
             return calculate_force(root, particle.getPosition(), particle.getMass());
         }
 
-        int getChildCount(Node& node, sf::RenderWindow& window) {
-            int count = 1;
+        void draw(Node& node, sf::RenderTexture& window) {
             sf::Vector2f size = sf::Vector2f(node.regionWidth, node.regionWidth);
             sf::RectangleShape s = sf::RectangleShape(size);
             s.setPosition(node.regionCenter - sf::Vector2f(node.regionWidth / 2, node.regionWidth / 2));
@@ -58,25 +59,32 @@ class BHTree {
             window.draw(s);
 
             for (Node& child : node.children) {
-                count += getChildCount(child, window);
+                draw(child, window);
+            }
+        }
+
+        void draw(sf::RenderTexture& window) {
+            draw(root, window);
+        }
+
+        int getChildCount(Node& node) {
+            int count = 1;
+            for (Node& child : node.children) {
+                count += getChildCount(child);
             }
             return count;
         }
 
-        int getTotalNodeSize(sf::RenderWindow& window) {
-            return getChildCount(root, window);
+        int getSize() {
+            return getChildCount(root);
         }
 
     private:
         Node root; // Root node of the quad-tree
-        static const double G; // Gravitational constant
 
         // Insert a particle into the quad-tree
         void insert(Node& node, sf::Vector2f position, float mass);
 
         // Force calculation between a particle and the quad-tree
         sf::Vector2f calculate_force(Node& node, sf::Vector2f position, float mass);
-
-        // Get the index of the child node that the particle belongs to
-        int get_child_index(double x, double y, double center_x, double center_y);
 };
