@@ -7,7 +7,6 @@
 #include "naive_nbody.hpp"
 #include "BHTree.hpp"
 
-
 sf::Color map_val_to_color(float value) // value is 0-1
 {
     if (value < 0.0f)
@@ -76,7 +75,7 @@ void handleWindowEvents(sf::RenderWindow &window) {
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(1600, 1000), "SFML works!");
+    sf::RenderWindow window(sf::VideoMode(1600, 1000), "N-Body Simulation");
     window.setFramerateLimit(120);
 
     sf::Clock clock;
@@ -91,62 +90,79 @@ int main()
     std::vector<Particle> particles;
 
     float threadCount = 1;
-    float framesUnder = 0;
+    float maxThreads = 20;
+    
+    float minFps = 30.0;
+    float secondsUnder = 0;
+
+    bool wasMousePressed = false;
 
     while (window.isOpen())
     {
         // calculates the frame or delta time
         float dt = clock.restart().asSeconds();
+        float fps = 1 / dt;
 
         handleWindowEvents(window);
-
         window.clear();
 
         // Benchmarking
-        float fpsThreshold = 30.0;
-        float fps = 1 / dt;
-        
-        if (fps >= fpsThreshold) 
+        secondsUnder += dt;
+        if (fps >= minFps) 
         {
-            for (int i = 0; i < std::min(ceil(fps - fpsThreshold), 30.0f); i++) 
+            for (int i = 0; i < std::min(ceil(fps - minFps), 30.0f); i++) 
             {
                 particles.push_back(createRandomParticle(window.getSize()));
-                framesUnder = 0;
+                secondsUnder = 0;
             }
         }
-        else if (threadCount <= 20) 
+        else if (threadCount <= maxThreads && secondsUnder > 5) 
         {
-            framesUnder++;
-            if (framesUnder > fps * 5) 
-            {
-                std::cout << threadCount << " - " << particles.size() << " particles" << std::endl;
-                threadCount++;
-                framesUnder = 0;
-            }
+            std::cout << threadCount << " - " << particles.size() << " particles" << std::endl;
+            threadCount++;
+            secondsUnder = 0;
         }
 
         // Particle handling
-        applyParallelGravity(particles, threadCount);
+        // applyParallelGravity(particles, threadCount);
+        // applyGravity(particles);
 
-        // BarnesHut bh = BarnesHut(0, 0, window.getSize().x, window.getSize().y);
-
-        // for (Particle &p : particles) {
-        //     bh.insertParticle(p);
-        // }
-        
-        // for (Particle &p : particles) {
-        //     bh.calculate_particle_force(p);
-        // }
-
-        for (int i = 0; i < particles.size(); i++)
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
         {
-            particles[i].integrate(dt);
-            particles[i].draw(window);
+            if (!wasMousePressed) {
+                auto mousePos = sf::Mouse::getPosition();
+                sf::Vector2f pos = sf::Vector2f(mousePos.x, mousePos.y);
+                auto p = Particle(5, pos);
+                p.set_color(sf::Color::Red);
+                particles.push_back(p);
+                wasMousePressed = true;
+            }
+        }
+        else {
+            wasMousePressed = false;
+        }
+        
+        sf::Vector2f windowCenter = sf::Vector2f(window.getSize().x / 2, window.getSize().y / 2);
+        BHTree bh = BHTree(windowCenter, 10000);
+        
+        for (Particle &p : particles) {
+            bh.insertParticle(p);
+        }
+        
+        for (Particle &p : particles) {
+            sf::Vector2f force = bh.calculate_particle_force(p);
+            p.applyForce(force);
         }
 
-        std::string fps_str = "FPS: " + std::to_string((int)(1 / dt)) + " / " + std::to_string((int)fpsThreshold);
+        for (Particle &p : particles)
+        {
+            p.integrate(dt);
+            p.draw(window);
+        }
+
+        std::string fps_str = "FPS: " + std::to_string((int)(1 / dt)) + " / " + std::to_string((int)minFps);
         std::string particles_str = "Particles: " + std::to_string(particles.size());
-        bench_text.setString(fps_str + "\n" + particles_str);
+        bench_text.setString(fps_str + "\n" + particles_str + "\n" + "BH Tree Size: " + std::to_string(bh.getTotalNodeSize(window)));
         window.draw(bench_text);
 
         window.display();

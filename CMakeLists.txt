@@ -7,6 +7,7 @@ set(SOURCE_FILES
     src/main.cpp
     src/particle.cpp
     src/BHTree.cpp
+    src/gravity.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
