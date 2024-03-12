@@ -123,7 +123,7 @@ void BHTreeNode::draw(sf::RenderWindow& window) {
 
     s.setFillColor(sf::Color(0,0,0,0));
     s.setOutlineThickness(1);
-    s.setOutlineColor(sf::Color(255,255,255,64));
+    s.setOutlineColor(sf::Color(255,255,255,32));
 
     window.draw(s);
 

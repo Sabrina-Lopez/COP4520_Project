@@ -65,13 +65,11 @@ int main()
 
     std::vector<Particle> particles;
 
-    int threadCount = 20;
-    float maxThreads = 20;
+    int threadCount = 4;
+    float maxThreads = 4;
     
     float minFps = 30.0;
     float secondsUnder = 0;
-
-    bool wasMousePressed = false;
 
     while (window.isOpen())
     {
@@ -106,7 +104,8 @@ int main()
         bh.insert(particles);
         applyBHForcesParallel(bh, particles, threadCount);
 
-        bh.draw(window);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+            bh.draw(window);
 
         //applyParallelGravity(particles, threadCount); // naive (multi-threaded)
 
