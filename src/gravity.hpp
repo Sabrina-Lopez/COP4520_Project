@@ -7,8 +7,7 @@
 #include <SFML/Graphics.hpp>
 #include "particle.hpp"
 
-const float G = 10.0; // the gravitational constant
-const float minDistance = 2.0; // the minimum distance to calculate gravitation forces
+const float G = 0.1; // the gravitational constant
 
 sf::Vector2f getGravityForce(sf::Vector2f pos1, float mass1, sf::Vector2f pos2, float mass2);
 

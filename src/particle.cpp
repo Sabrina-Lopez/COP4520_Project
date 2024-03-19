@@ -1,9 +1,16 @@
 #include "particle.hpp"
 
-Particle::Particle(float _mass, sf::Vector2f initPos)
+Particle::Particle(float _mass, sf::Vector2f pos)
 {
     mass = _mass;
-    position = initPos;
+    position = pos;
+}
+
+Particle::Particle(float _mass, sf::Vector2f pos, sf::Vector2f vel)
+{
+    mass = _mass;
+    position = pos;
+    velocity = vel;
 }
 
 void Particle::applyForce(sf::Vector2f new_force)
@@ -31,13 +38,23 @@ void Particle::integrate(float dt)
 
 void Particle::draw(sf::RenderWindow &window)
 {
-    float radius = std::clamp(mass / 5, 1.0f, 10.0f);
+    float radius = std::clamp(mass / 500, 1.0f, 10.0f);
     s.setRadius(radius);
     s.setPosition(position - sf::Vector2f(radius, radius));
     window.draw(s);
 }
 
-void Particle::set_color(sf::Color col)
+void Particle::setRadius(float radius)
+{
+    s.setRadius(radius);
+}
+
+void Particle::setColor(sf::Color col)
 {
     s.setFillColor(col);
+}
+
+void Particle::setShape(sf::CircleShape shape)
+{
+    s = shape;
 }

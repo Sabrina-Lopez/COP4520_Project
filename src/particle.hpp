@@ -12,7 +12,8 @@ class Particle {
         sf::CircleShape s;
 
     public:
-        Particle(float _mass, sf::Vector2f initPos);
+        Particle(float _mass, sf::Vector2f pos);
+        Particle(float _mass, sf::Vector2f pos, sf::Vector2f vel);
 
         float getMass() const { return mass; }
         sf::Vector2f getPosition() const { return position; }
@@ -25,6 +26,8 @@ class Particle {
         
         void integrate(float dt);
 
-        void set_color(sf::Color col);
+        void setColor(sf::Color col);
+        void setRadius(float radius);
+        void setShape(sf::CircleShape shape);
         void draw(sf::RenderWindow &window);
 };
