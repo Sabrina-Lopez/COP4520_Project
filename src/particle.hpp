@@ -24,7 +24,7 @@ class Particle {
         void applyForce(sf::Vector2f new_force);
         void resetForce();
         
-        void integrate(float dt);
+        void integrate(float dt, int steps = 1);
 
         void setColor(sf::Color col);
         void setRadius(float radius);

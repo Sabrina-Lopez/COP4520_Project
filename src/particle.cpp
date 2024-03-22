@@ -25,13 +25,15 @@ void Particle::resetForce()
 
 // Performs verlet integration of the change in time (dt)
 // Updates the position, velocity, acceleration, and force
-void Particle::integrate(float dt)
+void Particle::integrate(float dt, int steps)
 {
-    sf::Vector2f half_vel = velocity + 0.5f * acceleration * dt;
-    position += half_vel * dt;
+    for (int i = 0; i < steps; i++) {
+        sf::Vector2f half_vel = velocity + 0.5f * acceleration * dt;
+        position += half_vel * dt;
 
-    acceleration = force / mass;
-    velocity = half_vel + 0.5f * acceleration * dt;
+        acceleration = force / mass;
+        velocity = half_vel + 0.5f * acceleration * dt;
+    }
 
     resetForce();
 }
