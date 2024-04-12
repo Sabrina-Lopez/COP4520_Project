@@ -65,19 +65,17 @@ sf::Vector2f BHTreeNode::calculateForce(sf::Vector2f position, float newMass) {
         return getGravityForce(massCenter, mass, position, newMass);
     }
 
-    sf::Vector2f force = sf::Vector2f(0, 0);
-
     sf::Vector2f r = position - massCenter;
     float distance = sqrt(r.x * r.x + r.y * r.y);
 
     if (regionWidth / distance < theta) {
         return getGravityForce(massCenter, mass, position, newMass);
     }
-    else {
-        for (BHTreeNode& child : children) {
-            force += child.calculateForce(position, newMass);
-        }
-   }
+
+    sf::Vector2f force = sf::Vector2f(0, 0);
+    for (BHTreeNode& child : children) {
+        force += child.calculateForce(position, newMass);
+    }
 
     return force;
 }

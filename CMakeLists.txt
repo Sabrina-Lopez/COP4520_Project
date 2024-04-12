@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(nbody LANGUAGES CXX)
 
+set(CMAKE_CXX_FLAGS_DEBUG "-O3")
+
 # Source File Definitions
 set(SOURCE_FILES
     src/main.cpp
