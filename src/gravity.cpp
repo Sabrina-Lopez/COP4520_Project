@@ -6,7 +6,7 @@ sf::Vector2f getGravityForce(sf::Vector2f pos1, float mass1, sf::Vector2f pos2, 
 
     float distance = sqrt(r.x * r.x + r.y * r.y);
 
-    if (distance < minDistance)
+    if (distance < std::min(mass1, 15.0f))
         return sf::Vector2f(0, 0);
 
     sf::Vector2f norm_r = r / distance;

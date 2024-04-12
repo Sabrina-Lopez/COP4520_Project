@@ -30,6 +30,7 @@ void calculateGravity(std::vector<Particle> &particles, int startIdx, int endIdx
             // Use a lock only when updating the accumulator
             std::lock_guard<std::mutex> lock(forceAccumulators[i].mutex);
             forceAccumulators[i].force -= force;
+
             forceAccumulators[jIndex].force += force;
         }
     }

@@ -2,41 +2,19 @@
 #include <math.h>
 
 #include <SFML/Graphics.hpp>
+#include <imgui.h>
+#include <imgui-SFML.h>
 
 #include "particle.hpp"
-#include "naive_nbody.hpp"
+#include "particleSpawn.hpp"
+#include "naive.hpp"
 #include "BHTree.hpp"
-
-// Returns a particle with a position the area defined by size
-Particle createRandomParticle(sf::Vector2u spawnSize) {
-    float x = rand() % spawnSize.x;
-    float y = rand() % spawnSize.y;
-    float mass = rand() % 10 + 1;
-
-    Particle p = Particle(mass, sf::Vector2f(x, y));
-
-    // change colors
-    int r = rand() % 255;
-    int g = rand() % 255;
-    int b = rand() % 255;
-    p.set_color(sf::Color(r,g,b));
-
-    return p;
-}
-
-std::vector<Particle> createRandomParticles(int count, sf::Vector2u spawnSize) {
-    std::vector<Particle> particles;
-    
-    for (int i = 0; i < count; i++)
-        particles.push_back(createRandomParticle(spawnSize));
-
-    return particles;
-}
 
 void handleWindowEvents(sf::RenderWindow &window) {
     sf::Event event;
     while (window.pollEvent(event))
     {
+        ImGui::SFML::ProcessEvent(window, event);
         if (event.type == sf::Event::Closed)
             window.close();
 
@@ -51,79 +29,199 @@ void handleWindowEvents(sf::RenderWindow &window) {
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(1600, 1000), "N-Body Simulation");
-    window.setFramerateLimit(120);
+    int threadCount = 1;
+    int maxThreads = std::thread::hardware_concurrency();
+    
+    int minFps = 30.0;
+    float secondsUnder = 0;
 
-    sf::Clock clock;
+    bool doBenchmark = true;
+    bool autoSpawn = true;
 
-    sf::Font roboto;
-    roboto.loadFromFile("./src/fonts/Roboto-Regular.ttf");
+    int useBH = 0;
+    bool drawBH = false;
 
-    sf::Text bench_text;
-    bench_text.setScale(sf::Vector2f(0.75, 0.75));
-    bench_text.setFont(roboto);
+    int useGalaxy = 0; // 0 = random spawn, 1 = spawn galaxies
+
+    sf::Clock frameClock;
 
     std::vector<Particle> particles;
 
-    int threadCount = 4;
-    float maxThreads = 4;
-    
-    float minFps = 30.0;
-    float secondsUnder = 0;
+    sf::RenderWindow window(sf::VideoMode(1600, 1000), "N-Body Simulation");
+    window.setFramerateLimit(120);
+    auto _ = ImGui::SFML::Init(window);
+
+    sf::Vector2f windowCenter = sf::Vector2f(window.getSize()) / 2.0f;
+    Particle galaxyCenter = Particle(9e3, windowCenter + sf::Vector2f(1, 1));
+    galaxyCenter.setColor(sf::Color(255, 255, 255, 10));
+
+    if (useGalaxy)
+        particles.push_back(galaxyCenter);
 
     while (window.isOpen())
     {
-        // calculates the frame or delta time
-        float dt = clock.restart().asSeconds();
-        float fps = 1 / dt;
-
         handleWindowEvents(window);
         window.clear();
 
+        // calculates the frame or delta time
+        sf::Time frameTime = frameClock.restart();
+        ImGui::SFML::Update(window, frameTime);
+
+        float dt = frameTime.asSeconds();
+        float fps = 1 / dt;
+
         // Benchmarking
-        secondsUnder += dt;
-        if (fps >= minFps) 
-        {
-            for (int i = 0; i < std::min(ceil(fps - minFps), 60.0f); i++) 
-            {
-                particles.push_back(createRandomParticle(window.getSize()));
+        if (doBenchmark) {
+            if (fps < minFps) {
+                secondsUnder += dt;
+
+                if (secondsUnder > 2) 
+                {
+                    std::cout << threadCount << " - " << particles.size() << " particles" << std::endl;
+                    if (threadCount < maxThreads) {
+                        threadCount++;
+                    }
+                    else {
+                        doBenchmark = false;
+                        autoSpawn = false;
+                    }
+                    secondsUnder = 0;
+                }
+            }
+            else {
                 secondsUnder = 0;
             }
         }
-        else if (threadCount <= maxThreads && secondsUnder > 5) 
-        {
-            std::cout << threadCount << " - " << particles.size() << " particles" << std::endl;
-            threadCount++;
-            secondsUnder = 0;
+
+        // Spawning
+        if (autoSpawn) {
+            int spawnCount = 5;
+            
+            if (doBenchmark) {
+                spawnCount = std::min(ceil(fps - minFps), 60.0f);
+            }
+
+            for (int i = 0; i < spawnCount; i++) 
+            {
+                auto p = createRandomParticle(window.getSize());
+
+                if (useGalaxy)
+                    p = createRandomOrbitParticle(particles[0], 15, 150);
+
+                particles.push_back(p);
+            }
         }
 
         sf::Vector2u windowSize = window.getSize();
         sf::Vector2f windowCenter = sf::Vector2f(windowSize.x / 2, windowSize.y / 2);
         BHTreeNode bh = BHTreeNode(windowCenter, windowSize.x * 2, 1);
 
-        bh.insert(particles);
-        applyBHForcesParallel(bh, particles, threadCount);
+        if (useBH) {
+            bh.insert(particles);
+            applyBHForcesParallel(bh, particles, threadCount);
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-            bh.draw(window);
-
-        //applyParallelGravity(particles, threadCount); // naive (multi-threaded)
+            if (drawBH)
+                bh.draw(window);
+        }
+        else {
+            applyParallelGravity(particles, threadCount); // naive (multi-threaded)
+        }
 
         for (Particle &p : particles)
         {
-            p.integrate(dt);
+            p.integrate(dt, 1);
             p.draw(window);
         }
 
-        std::string fps_str = "FPS: " + std::to_string((int)(1 / dt)) + " / " + std::to_string((int)minFps);
-        std::string particles_str = "Particles: " + std::to_string(particles.size());
-        std::string threads_str = "Threads: " + std::to_string(threadCount);
-        std::string bh_str = "BH Size: " + std::to_string(bh.getSize());
-        bench_text.setString(fps_str + "\n" + particles_str + "\n" + threads_str + "\n" + bh_str);
-        window.draw(bench_text);
+        // UI
+        ImGui::Begin("N-body Debug");
 
+        if (doBenchmark && fps < minFps) {
+            ImGui::TextColored(ImVec4(sf::Color::Red),"FPS: %.2f", fps);
+        }
+        else {
+            ImGui::Text("FPS: %.2f", fps);
+        }
+
+        ImGui::Text("Threads: %d / %d", threadCount, maxThreads);
+
+        if (!doBenchmark) {
+            ImGui::Text("Set"); ImGui::SameLine();
+            if (ImGui::SmallButton("|<<"))
+                threadCount = 1;
+            ImGui::SameLine();
+
+            if (ImGui::SmallButton("-1"))
+                threadCount--;
+            ImGui::SameLine();
+
+            if (ImGui::SmallButton("+1"))
+                threadCount++;
+            ImGui::SameLine();
+
+            if (ImGui::SmallButton(">>|"))
+                threadCount = maxThreads;
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::Checkbox("Benchmark", &doBenchmark) && doBenchmark) {
+            autoSpawn = true;
+        }
+
+        if (doBenchmark) {
+            ImGui::SliderInt("Min FPS", &minFps, 5, 60);
+            if (ImGui::SmallButton("Restart")) {
+                particles.clear();
+                if (useGalaxy)
+                    particles.push_back(galaxyCenter);
+                threadCount = 1;
+            }
+        }
+
+        ImGui::Separator();
+
+        ImGui::Text("Particles: %d", particles.size());
+
+        if (ImGui::SmallButton("Clear")) {
+            particles.clear();
+            if (useGalaxy)
+                particles.push_back(galaxyCenter);
+        }
+
+        ImGui::Checkbox("Auto Spawn", &autoSpawn);
+
+        if (autoSpawn) {
+            ImGui::Text("Spawn:"); ImGui::SameLine(); 
+            if (ImGui::RadioButton("Random", &useGalaxy, 0)) {
+                particles.clear();
+            } 
+            ImGui::SameLine(); 
+            
+            if (ImGui::RadioButton("Galaxy", &useGalaxy, 1)) {
+                particles.clear();
+                if (useGalaxy)
+                    particles.push_back(galaxyCenter);
+            }
+        }
+
+        ImGui::Separator();
+
+        ImGui::Text("Algorithm");
+        ImGui::RadioButton("Naive", &useBH, 0); ImGui::SameLine(); 
+        ImGui::RadioButton("Barnes-Hut", &useBH, 1);
+
+        if (useBH) {
+            ImGui::Text("QuadTree Size: %d", bh.getSize());
+            ImGui::Checkbox("Visualize Quadtree", &drawBH);
+        }
+
+        ImGui::End();
+        
+        ImGui::SFML::Render(window);
         window.display();
     }
 
+    ImGui::SFML::Shutdown();
     return 0;
 }

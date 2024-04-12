@@ -38,7 +38,9 @@ void BHTreeNode::insert(sf::Vector2f position, float newMass) {
 
         for (BHTreeNode &n : children) {
             n.insert(position, newMass);
-            n.insert(massCenter, mass);
+            
+            if (position != massCenter)
+                n.insert(massCenter, mass);
         }
 
         isExternal = false;
@@ -63,27 +65,23 @@ sf::Vector2f BHTreeNode::calculateForce(sf::Vector2f position, float newMass) {
         return getGravityForce(massCenter, mass, position, newMass);
     }
 
-    sf::Vector2f force = sf::Vector2f(0, 0);
-
     sf::Vector2f r = position - massCenter;
     float distance = sqrt(r.x * r.x + r.y * r.y);
 
     if (regionWidth / distance < theta) {
         return getGravityForce(massCenter, mass, position, newMass);
     }
-    else {
-        for (BHTreeNode& child : children) {
-            force += child.calculateForce(position, newMass);
-        }
-   }
+
+    sf::Vector2f force = sf::Vector2f(0, 0);
+    for (BHTreeNode& child : children) {
+        force += child.calculateForce(position, newMass);
+    }
 
     return force;
 }
 
 void BHTreeNode::applyForce(Particle& particle) {
     auto f = calculateForce(particle.getPosition(), particle.getMass());
-    // if (particle.getMass() == 1000000000)
-    //     std::cout << f.x << " " << f.y << std::endl;
     particle.applyForce(f);
 }
 
@@ -116,6 +114,9 @@ void applyBHForcesParallel(BHTreeNode& bh, std::vector<Particle>& particles, int
 
 
 void BHTreeNode::draw(sf::RenderWindow& window) {
+    if (regionWidth < 0.75)
+        return;
+
     sf::Vector2f size = sf::Vector2f(regionWidth, regionWidth);
 
     sf::RectangleShape s = sf::RectangleShape(size);
